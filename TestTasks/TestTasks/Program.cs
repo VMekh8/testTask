@@ -1,10 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using TestTasks.CharCounting;
 using TestTasks.InternationalTradeTask;
 using TestTasks.WeatherFromAPI;
+using TestTasks.WeatherFromAPI.Clients;
+using TestTasks.WeatherFromAPI.Services;
 
 namespace TestTasks
 {
@@ -19,11 +22,13 @@ namespace TestTasks
             charCount.ToList().ForEach(tuple => Console.WriteLine($"{tuple.count} + {tuple.symbol}"));
 
             var commodityRepository = new CommodityRepository();
-            commodityRepository.GetImportTariff("Natural honey");
-            commodityRepository.GetExportTariff("Iron/steel scrap not sorted or graded");            
+            Console.WriteLine(commodityRepository.GetImportTariff("Natural honey"));
+            Console.WriteLine(
+            commodityRepository.GetExportTariff("Iron/steel scrap not sorted or graded"));
 
-            var weatherManager = new WeatherManager();
+            var weatherManager = new WeatherManager(new GeocodingClient(new HttpClient(), "mysecretkey"), new WeatherClient(new HttpClient(), "mysecretkey"));
             var comparisonResult = await weatherManager.CompareWeather("kyiv,ua", "lviv,ua", 4);
+            Console.WriteLine($"{comparisonResult.CityA}\t{comparisonResult.CityB}\t{comparisonResult.RainierDaysCount}, {comparisonResult.WarmerDaysCount}");
         }
     }
 }
