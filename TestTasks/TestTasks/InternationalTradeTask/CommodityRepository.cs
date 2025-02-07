@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using TestTasks.InternationalTradeTask.Models;
 
 namespace TestTasks.InternationalTradeTask
@@ -8,12 +10,24 @@ namespace TestTasks.InternationalTradeTask
     {
         public double GetImportTariff(string commodityName)
         {
-            throw new NotImplementedException();
+            foreach (var group in _allCommodityGroups)
+            {
+                var tariff = FindDeepestTariff(group, commodityName, true);
+                if (tariff.HasValue)
+                    return tariff.Value;
+            }
+            throw new ArgumentException("Commodity not found");
         }
 
         public double GetExportTariff(string commodityName)
         {
-            throw new NotImplementedException();
+            foreach (var group in _allCommodityGroups)
+            {
+                var tariff = FindDeepestTariff(group, commodityName, false);
+                if (tariff.HasValue)
+                    return tariff.Value;
+            }
+            throw new ArgumentException("Commodity not found");
         }
 
         private FullySpecifiedCommodityGroup[] _allCommodityGroups = new FullySpecifiedCommodityGroup[]
@@ -47,5 +61,42 @@ namespace TestTasks.InternationalTradeTask
                 }
             }
         };
+
+        private double? FindDeepestTariff(ICommodityGroup commodity, string name, bool isImport)
+        {
+            double? tariff = null;
+            int maxDepth = -1;
+
+            void DFS(ICommodityGroup group, int depth, double? inheritedTariff)
+            {
+                if (group == null) return;
+
+                double? currentTariff = isImport ? group.ImportTarif : group.ExportTarif;
+                double? effectiveTariff = currentTariff ?? inheritedTariff;
+
+                if (group.Name == name)
+                {
+                    if (depth > maxDepth)
+                    {
+                        maxDepth = depth;
+                        tariff = effectiveTariff;
+                    }
+                }
+
+                if (group.SubGroups != null)
+                {
+                    foreach (var subgroup in group.SubGroups)
+                    {
+                        DFS(subgroup, depth + 1, effectiveTariff);
+                    }
+                }
+            }
+
+            DFS(commodity, 0, null);
+            return tariff;
+        }
+
+
     }
 }
+
